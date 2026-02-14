@@ -13,7 +13,7 @@ matchesRouter.get("/", async(req, res) => {
 
   const parsed = listMatchesQuerySchema.safeParse(req.query);
   if (!parsed.success) {
-    return res.status(400).json({ errors: parsed.error.errors });
+    return res.status(400).json({ errors: parsed.error.issues });
   }
 
   const limit = Math.min(parsed.data.limit ?? 50, MAX_LIMIT);
@@ -34,7 +34,7 @@ matchesRouter.post('/', async (req, res) => {
   const parsed = createMatchSchema.safeParse(req.body);
 
   if (!parsed.success) {
-    return res.status(400).json({ errors: parsed.error.errors });
+    return res.status(400).json({ errors: parsed.error.issues });
   }
   const { data: { startTime, endTime, homeScore, awayScore } } = parsed;
   try {
@@ -46,6 +46,9 @@ matchesRouter.post('/', async (req, res) => {
       awayScore: awayScore ?? 0,
       status: getMatchStatus(startTime, endTime),
     }).returning();
+    if(res.app.locals.broadcastMatchCreated){
+      res.app.locals.broadcastMatchCreated(event);
+    }
     return res.status(201).json(event);
   } catch (error) {
     console.error("Error creating match:", error);
