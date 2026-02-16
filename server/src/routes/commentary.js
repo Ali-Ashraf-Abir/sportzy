@@ -7,7 +7,7 @@ import { commentary } from "../db/schema.js";
 
 export const commentaryRouter = Router();
 const MAX_LIMIT = 50;
-commentaryRouter.get("/:id", async(req, res) => {
+commentaryRouter.get("/:id", async (req, res) => {
     try {
         // 1) Validate params + query
         const { id: matchId } = matchIdParamSchema.parse(req.params);
@@ -25,6 +25,7 @@ commentaryRouter.get("/:id", async(req, res) => {
             .limit(safeLimit);
 
         return res.json(rows);
+
     } catch (err) {
         console.error("GET /commentary error:", err);
 
@@ -69,6 +70,10 @@ commentaryRouter.post("/:id", async (req, res) => {
                 tags: payload.tags ?? [],
             })
             .returning();
+
+        if (res.app.locals.broadcastCommentary) {
+            res.app.locals.broadcastCommentary(created);
+        }
 
         return res.status(201).json(created);
     } catch (err) {

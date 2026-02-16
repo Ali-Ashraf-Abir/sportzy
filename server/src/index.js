@@ -17,8 +17,9 @@ app.use(securityMiddleware());
 app.use('/commentary',commentaryRouter)
 app.use('/matches', matchesRouter);
 
-const { broadcastMatchCreated } = attachWebsocketServer(server);
+const { broadcastMatchCreated,broadcastCommentary } = attachWebsocketServer(server);
 app.locals.broadcastMatchCreated = broadcastMatchCreated;
+app.locals.broadcastCommentary = broadcastCommentary; // Will be set after commentaryRouter is defined
 
 server.listen(PORT,HOST, () => {
   const baseUrl = HOST === "0.0.0.0" ? `http://localhost:${PORT}` : `http://${HOST}:${PORT}`
