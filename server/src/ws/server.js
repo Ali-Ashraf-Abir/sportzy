@@ -1,31 +1,68 @@
-import {WebSocket, WebSocketServer } from "ws";
+import { WebSocket, WebSocketServer } from "ws";
+import { wsArcjet } from "../arcjet.js";
 
-function sendJson(socket, payload){
-    if(socket.readyState !== WebSocket.OPEN) return;
+function sendJson(socket, payload) {
+    if (socket.readyState !== WebSocket.OPEN) return;
 
     socket.send(JSON.stringify(payload));
 }
 
-function broadcast (wss, payload){
+function broadcast(wss, payload) {
     for (const client of wss.clients) {
-        if(client.readyState !== WebSocket.OPEN) continue;
+        if (client.readyState !== WebSocket.OPEN) continue;
         client.send(JSON.stringify(payload));
     }
 }
 
-export function attachWebsocketServer(server){
+export function attachWebsocketServer(server) {
     const wss = new WebSocketServer({
         server,
         path: "/ws",
         maxPayload: 1024 * 1024, // 1MB
     });
+
+
     wss.on("connection", (socket) => {
+        if (wsArcjet) {
+            try {
+                const decision = wsArcjet.protect(wss);
+                if (decision.isDenied()) {
+                    code = decision.reason.isRateLimit() ? 1013 : 1008;
+                    const reason = decision.reason.isRateLimit() ? "Rate limit exceeded" : "Forbidden";
+                    socket.close(code, reason);
+                    return;
+                }
+            } catch (err) {
+                console.error('ws connection error', err);
+                socket.close(1011, 'Server security error');
+                return;
+            }
+        }
+        socket.isAlive = true;
+        socket.on("pong", () => {
+            socket.isAlive = true;
+        });
         sendJson(socket, { type: "welcome", message: "Welcome to the Sports Live WebSocket server!" });
-        socket.on("error",console.error);
+        socket.on("error", console.error);
     });
 
-    function broadcastMatchCreated(match){
-        broadcast(wss, { type: "match_created", data:match });
+    const interval = setInterval(() => {
+        wss.clients.forEach((socket) => {
+            if (!socket.isAlive) {
+                socket.terminate();
+            } else {
+                socket.isAlive = false;
+                socket.ping();
+            }
+        });
+    }, 30000);
+
+    wss.on("close", () => {
+        clearInterval(interval);
+    });
+
+    function broadcastMatchCreated(match) {
+        broadcast(wss, { type: "match_created", data: match });
     }
     return {
         broadcastMatchCreated,
