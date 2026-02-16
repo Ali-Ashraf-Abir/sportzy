@@ -2,11 +2,13 @@ import express from "express";
 import {matchesRouter} from "./routes/matches.js";
 import {commentaryRouter} from "./routes/commentary.js";
 import http from "http";
+import cors from "cors"
 import { attachWebsocketServer } from "./ws/server.js";
 import { securityMiddleware } from "./arcjet.js";
 const app = express();
 const PORT = Number(process.env.PORT) || 8000;
 const HOST = String(process.env.HOST) || "0.0.0.0";
+app.use(cors())
 app.use(express.json());
 const server = http.createServer(app);
 app.get("/", (req, res) => {
