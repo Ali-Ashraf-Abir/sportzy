@@ -22,29 +22,38 @@ export function attachWebsocketServer(server) {
     });
 
 
-    wss.on("connection", (socket) => {
+    wss.on("connection", async (socket, req) => {
         if (wsArcjet) {
             try {
-                const decision = wsArcjet.protect(wss);
+                const decision = await wsArcjet.protect(req);
+
                 if (decision.isDenied()) {
-                    code = decision.reason.isRateLimit() ? 1013 : 1008;
-                    const reason = decision.reason.isRateLimit() ? "Rate limit exceeded" : "Forbidden";
+                    const code = decision.reason.isRateLimit() ? 1013 : 1008;
+                    const reason = decision.reason.isRateLimit()
+                        ? "Rate limit exceeded"
+                        : "Forbidden";
+
                     socket.close(code, reason);
                     return;
                 }
             } catch (err) {
-                console.error('ws connection error', err);
-                socket.close(1011, 'Server security error');
+                console.error("ws connection error", err);
+                socket.close(1011, "Server security error");
                 return;
             }
         }
+
         socket.isAlive = true;
-        socket.on("pong", () => {
-            socket.isAlive = true;
+        socket.on("pong", () => (socket.isAlive = true));
+
+        sendJson(socket, {
+            type: "welcome",
+            message: "Welcome to the Sports Live WebSocket server!",
         });
-        sendJson(socket, { type: "welcome", message: "Welcome to the Sports Live WebSocket server!" });
+
         socket.on("error", console.error);
     });
+
 
     const interval = setInterval(() => {
         wss.clients.forEach((socket) => {

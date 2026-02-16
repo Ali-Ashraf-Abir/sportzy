@@ -23,6 +23,7 @@ export const matchIdParamSchema = z.object({
   id: z.coerce.number().int().positive(),
 });
 
+
 export const createMatchSchema = z
   .object({
     sport: z.string().min(1, "sport is required"),

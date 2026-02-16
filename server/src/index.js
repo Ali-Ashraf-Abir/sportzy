@@ -1,5 +1,6 @@
 import express from "express";
 import {matchesRouter} from "./routes/matches.js";
+import {commentaryRouter} from "./routes/commentary.js";
 import http from "http";
 import { attachWebsocketServer } from "./ws/server.js";
 import { securityMiddleware } from "./arcjet.js";
@@ -12,7 +13,8 @@ app.get("/", (req, res) => {
   res.send("Hello! Express server is running 🚀");
 });
 
-app.use(securityMiddleware())
+app.use(securityMiddleware());
+app.use('/commentary',commentaryRouter)
 app.use('/matches', matchesRouter);
 
 const { broadcastMatchCreated } = attachWebsocketServer(server);
